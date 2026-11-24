@@ -23,5 +23,8 @@ fn main() {
                 println!("cargo:rustc-link-arg-bins={}", obj_path.display());
             }
         }
+        // Force Windows GUI subsystem so no black CMD console window ever opens!
+        println!("cargo:rustc-link-arg-bins=-Wl,--subsystem,windows");
+        println!("cargo:rustc-link-arg-bins=-mwindows");
     }
 }

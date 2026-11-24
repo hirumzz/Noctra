@@ -137,21 +137,12 @@ impl NoctraBrowserCore {
             let t1 = Self::build_tab(
                 active_prof.id,
                 active_ws.id,
-                "Rust Programming Language".to_string(),
-                "https://www.rust-lang.org".to_string(),
-                Some("Core".to_string()),
+                "New Tab".to_string(),
+                "noctra://newtab".to_string(),
+                None,
                 true,
             );
-            let t2 = Self::build_tab(
-                active_prof.id,
-                active_ws.id,
-                "Wikipedia — Free Encyclopedia".to_string(),
-                "https://en.wikipedia.org/wiki/Rust_(programming_language)".to_string(),
-                Some("Research".to_string()),
-                false,
-            );
             loaded_tabs.push(t1.clone());
-            loaded_tabs.push(t2.clone());
             let _ = db.save_kv("tabs", "open_tabs", &loaded_tabs);
 
             if wm.list_surfaces_for_workspace(active_ws.id).is_empty() {
@@ -164,15 +155,6 @@ impl NoctraBrowserCore {
                     active_ws.storage_partition_id.clone(),
                     false,
                 );
-                let _ = wm.spawn_surface(
-                    active_prof.id,
-                    active_ws.id,
-                    t2.id,
-                    t2.title.clone(),
-                    t2.url.clone(),
-                    active_ws.storage_partition_id.clone(),
-                    false,
-                );
             }
         }
 
@@ -182,9 +164,9 @@ impl NoctraBrowserCore {
                 id: Uuid::new_v4(),
                 profile_id: active_prof.id,
                 workspace_id: None,
-                name: "NOCTRA Shield & Fingerprint Guard".to_string(),
+                name: "NOCTRA Shield & Tracker Blocker".to_string(),
                 version: "1.4.0".to_string(),
-                description: "Native Rust content blocker & Canvas/WebGL entropy normalizer."
+                description: "Built-in ad, tracker, and fingerprint protection."
                     .to_string(),
                 enabled: true,
                 permissions: vec!["webRequest".to_string(), "webRequestBlocking".to_string()],
@@ -195,39 +177,36 @@ impl NoctraBrowserCore {
                 id: Uuid::new_v4(),
                 profile_id: active_prof.id,
                 workspace_id: None,
-                name: "Nocto Istio & Kong Mesh Telemetry Overlay".to_string(),
+                name: "Nocto Istio & Kong Mesh Telemetry".to_string(),
                 version: "0.9.2".to_string(),
-                description: "Inspect Envoy xDS headers and Kong upstream latency headers inline."
+                description: "Inspect Envoy xDS and Kong upstream latency headers."
                     .to_string(),
                 enabled: true,
                 permissions: vec!["activeTab".to_string(), "storage".to_string()],
-                unsupported_cws_apis: vec!["chrome.gcm".to_string(), "chrome.identity.getAuthToken (Uses NOCTRA OAuth Vault instead)".to_string()],
+                unsupported_cws_apis: vec!["chrome.gcm".to_string()],
                 audit_status: "Audited — Zero External Calls".to_string(),
             },
         ];
 
         // Seed default bookmarks if empty
         if db.list_bookmarks(active_prof.id)?.is_empty() {
-            let _ = db.add_bookmark(&BookmarkEntry {
-                id: Uuid::new_v4(),
-                profile_id: active_prof.id,
-                workspace_id: Some(active_ws.id),
-                title: "Rust Standard Library Docs".to_string(),
-                url: "https://doc.rust-lang.org/std/".to_string(),
-                folder: "Engineering".to_string(),
-                tags: vec!["rust".to_string(), "docs".to_string()],
-                created_at: Utc::now(),
-            });
-            let _ = db.add_bookmark(&BookmarkEntry {
-                id: Uuid::new_v4(),
-                profile_id: active_prof.id,
-                workspace_id: Some(active_ws.id),
-                title: "Istio Service Mesh Documentation (Nocto)".to_string(),
-                url: "https://istio.io/latest/docs/".to_string(),
-                folder: "NOCTA Ecosystem".to_string(),
-                tags: vec!["istio".to_string(), "nocto".to_string(), "sre".to_string()],
-                created_at: Utc::now(),
-            });
+            for (title, url, folder) in [
+                ("Google", "https://www.google.com", "Favorites"),
+                ("YouTube", "https://www.youtube.com", "Favorites"),
+                ("GitHub", "https://github.com", "Favorites"),
+                ("Wikipedia", "https://www.wikipedia.org", "Favorites"),
+            ] {
+                let _ = db.add_bookmark(&BookmarkEntry {
+                    id: Uuid::new_v4(),
+                    profile_id: active_prof.id,
+                    workspace_id: Some(active_ws.id),
+                    title: title.to_string(),
+                    url: url.to_string(),
+                    folder: folder.to_string(),
+                    tags: vec!["quick".to_string()],
+                    created_at: Utc::now(),
+                });
+            }
         }
 
         let default_macro = AutomationMacro {
@@ -321,6 +300,7 @@ impl NoctraBrowserCore {
         if trimmed.starts_with("https://")
             || trimmed.starts_with("http://")
             || trimmed.starts_with("about:")
+            || trimmed.starts_with("noctra://")
         {
             return trimmed.to_string();
         }

@@ -60,22 +60,45 @@ pub struct ChromiumEngineController {
 
 impl ChromiumEngineController {
     pub fn detect_and_initialize() -> Self {
-        let candidates = [
-            "google-chrome",
-            "google-chrome-stable",
-            "chromium",
-            "chromium-browser",
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        let mut candidates: Vec<String> = vec![
+            "google-chrome".to_string(),
+            "google-chrome-stable".to_string(),
+            "chromium".to_string(),
+            "chromium-browser".to_string(),
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".to_string(),
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser".to_string(),
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe".to_string(),
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe".to_string(),
+            r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe".to_string(),
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe".to_string(),
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe".to_string(),
         ];
+
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            candidates.push(format!(r"{}\Google\Chrome\Application\chrome.exe", local_app_data));
+            candidates.push(format!(r"{}\BraveSoftware\Brave-Browser\Application\brave.exe", local_app_data));
+            candidates.push(format!(r"{}\Microsoft\Edge\Application\msedge.exe", local_app_data));
+        }
 
         let mut found_bin = None;
         let mut version_str = "Chromium/Blink Embedded Compatible Runtime".to_string();
 
         for bin in candidates {
-            if let Ok(out) = Command::new(bin).arg("--version").output() {
+            if std::path::Path::new(&bin).exists() {
+                found_bin = Some(bin.clone());
+                version_str = "Chromium / Blink Engine (Native OS Runtime)".to_string();
+                break;
+            }
+            let mut cmd = Command::new(&bin);
+            cmd.arg("--version").stdout(Stdio::piped()).stderr(Stdio::null());
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            if let Ok(out) = cmd.output() {
                 if out.status.success() {
-                    found_bin = Some(bin.to_string());
+                    found_bin = Some(bin);
                     version_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
                     break;
                 }
@@ -106,7 +129,7 @@ impl ChromiumEngineController {
     }
 
     /// Renders a live URL using the real Chromium/Blink + V8 engine into an RGBA pixel framebuffer
-    /// for a native NOCTRA internal floating surface, isolated to `profile_partition_dir`.
+    /// for a native NOCTRA surface, with CREATE_NO_WINDOW on Windows so no CMD window ever flashes.
     pub fn render_url_to_native_framebuffer(
         &self,
         surface_id: Uuid,
@@ -116,8 +139,8 @@ impl ChromiumEngineController {
         profile_partition_dir: &Path,
     ) -> NoctraResult<RenderedChromiumSurfaceFrame> {
         let start = std::time::Instant::now();
-        let w = width.clamp(320, 1920);
-        let h = height.clamp(200, 1200);
+        let w = width.clamp(360, 1920);
+        let h = height.clamp(240, 1080);
 
         let surface_render_dir = profile_partition_dir
             .join("surfaces")
@@ -125,14 +148,13 @@ impl ChromiumEngineController {
         let _ = fs::create_dir_all(&surface_render_dir);
         let out_png = std::env::temp_dir().join(format!("noctra_surface_{}.png", surface_id));
 
-        let mut rgba_pixels = Vec::new();
+        let mut rgba_pixels;
         let mut raw_png_bytes = Vec::new();
-        let mut dom_html = String::new();
+        let dom_html = String::new();
 
         if let Some(ref bin) = self.capabilities.binary_path {
-            // 1. Render real webpage pixels via Chromium Blink/V8 engine with isolated partition
-            let status = Command::new(bin)
-                .arg("--headless=new")
+            let mut cmd = Command::new(bin);
+            cmd.arg("--headless=new")
                 .arg("--no-sandbox")
                 .arg("--disable-gpu")
                 .arg("--hide-scrollbars")
@@ -146,8 +168,15 @@ impl ChromiumEngineController {
                 .arg(format!("--screenshot={}", out_png.to_string_lossy()))
                 .arg(target_url)
                 .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status();
+                .stderr(Stdio::null());
+
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+
+            let status = cmd.status();
 
             if status.map(|s| s.success()).unwrap_or(false) && out_png.exists() {
                 if let Ok(bytes) = fs::read(&out_png) {
@@ -159,7 +188,6 @@ impl ChromiumEngineController {
                         raw_png_bytes = bytes;
                         let _ = fs::remove_file(&out_png);
 
-                        // Also dump DOM quickly or extract title
                         let title = Url::parse(target_url)
                             .ok()
                             .and_then(|u| u.host_str().map(|s| s.to_string()))
@@ -174,8 +202,8 @@ impl ChromiumEngineController {
                             rgba_pixels,
                             raw_png_bytes,
                             dom_reader_text: format!(
-                                "Rendered live via {} (Blink + V8) into Native Surface {}",
-                                self.capabilities.version_string, surface_id
+                                "Rendered live via {} (Blink + V8)",
+                                self.capabilities.version_string
                             ),
                             raw_html_source: dom_html,
                             status_code: 200,
@@ -187,17 +215,6 @@ impl ChromiumEngineController {
                         return Ok(frame);
                     }
                 }
-            }
-
-            // Dump DOM if screenshot didn't produce file
-            if let Ok(out) = Command::new(bin)
-                .arg("--headless=new")
-                .arg("--no-sandbox")
-                .arg("--dump-dom")
-                .arg(target_url)
-                .output()
-            {
-                dom_html = String::from_utf8_lossy(&out.stdout).to_string();
             }
         }
 
