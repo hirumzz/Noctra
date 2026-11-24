@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=NOCTRA Browser
+GenericName=Desktop Web Browser
+Comment=NOCTRA — Cross-Platform, Rust-First Desktop Browser. Beyond Browsing.
+Exec=noctra-desktop
+Terminal=false
+Categories=Network;WebBrowser;Development;
+StartupWMClass=noctra-desktop-browser

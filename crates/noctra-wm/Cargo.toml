@@ -1,0 +1,14 @@
+[package]
+name = "noctra-wm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+noctra-types = { path = "../noctra-types" }
+noctra-database = { path = "../noctra-database" }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+parking_lot.workspace = true

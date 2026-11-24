@@ -1,0 +1,42 @@
+[package]
+name = "noctra-desktop"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "noctra"
+path = "src/main.rs"
+
+[dependencies]
+noctra-types = { path = "../../crates/noctra-types" }
+noctra-platform = { path = "../../crates/noctra-platform" }
+noctra-database = { path = "../../crates/noctra-database" }
+noctra-profiles = { path = "../../crates/noctra-profiles" }
+noctra-wm = { path = "../../crates/noctra-wm" }
+noctra-privacy = { path = "../../crates/noctra-privacy" }
+noctra-network-monitor = { path = "../../crates/noctra-network-monitor" }
+noctra-downloads = { path = "../../crates/noctra-downloads" }
+noctra-torrent = { path = "../../crates/noctra-torrent" }
+noctra-devhub = { path = "../../crates/noctra-devhub" }
+noctra-ai = { path = "../../crates/noctra-ai" }
+noctra-sync = { path = "../../crates/noctra-sync" }
+noctra-chromium = { path = "../../crates/noctra-chromium" }
+noctra-core = { path = "../../crates/noctra-core" }
+eframe.workspace = true
+egui.workspace = true
+egui_extras.workspace = true
+image.workspace = true
+tokio.workspace = true
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+parking_lot.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+eframe = { workspace = true, features = ["x11", "wayland"] }

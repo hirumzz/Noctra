@@ -1,0 +1,30 @@
+[package]
+name = "noctra-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+noctra-types = { path = "../noctra-types" }
+noctra-platform = { path = "../noctra-platform" }
+noctra-database = { path = "../noctra-database" }
+noctra-profiles = { path = "../noctra-profiles" }
+noctra-wm = { path = "../noctra-wm" }
+noctra-privacy = { path = "../noctra-privacy" }
+noctra-network-monitor = { path = "../noctra-network-monitor" }
+noctra-downloads = { path = "../noctra-downloads" }
+noctra-torrent = { path = "../noctra-torrent" }
+noctra-devhub = { path = "../noctra-devhub" }
+noctra-ai = { path = "../noctra-ai" }
+noctra-sync = { path = "../noctra-sync" }
+noctra-chromium = { path = "../noctra-chromium" }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+url.workspace = true
+urlencoding.workspace = true
+sysinfo.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
