@@ -2048,10 +2048,18 @@ fn main() -> eframe::Result<()> {
 
     let core = NoctraBrowserCore::initialize(None).expect("Failed to initialize NOCTRA Core");
 
+    let icon_rgba = include_bytes!("../assets/noctra_icon_64.rgba").to_vec();
+    let app_icon = Arc::new(egui::IconData {
+        rgba: icon_rgba,
+        width: 64,
+        height: 64,
+    });
+
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("NOCTRA — Beyond Browsing.")
             .with_app_id("noctra-desktop-browser")
+            .with_icon(app_icon)
             .with_position([0.0, 0.0])
             .with_inner_size([1440.0, 860.0])
             .with_min_inner_size([960.0, 600.0]),
